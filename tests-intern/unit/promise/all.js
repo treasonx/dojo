@@ -3,11 +3,11 @@ define([
 	'intern/chai!assert',
 	'intern/dojo/Deferred',
 	'dojo/promise/all'
-], function(registerSuite, assert, Deferred, all){
+], function (registerSuite, assert, Deferred, all) {
 	registerSuite({
 		name: 'dojo/promise/all',
 
-		'array argument': function(t){
+		'array argument': function () {
 			var expectedResults = [
 					'foo',
 					'bar',
@@ -19,21 +19,14 @@ define([
 					expectedResults[2]
 				];
 
-			var testDeferred = this.async();
 			deferreds[1].resolve(expectedResults[1]);
-			all(deferreds).then(function (results) {
-				try {
-					assert.deepEqual(results, expectedResults);
-					testDeferred.resolve();
-				}
-				catch (error) {
-					testDeferred.reject(error);
-				}
-			});
+			all(deferreds).then(this.async().callback(function (results) {
+				assert.deepEqual(results, expectedResults);
+			}));
 			deferreds[0].resolve(expectedResults[0]);
 		},
 
-		'object argument': function(t){
+		'object argument': function () {
 			var expectedResultHash = {
 					a: 'foo',
 					b: 'bar',
@@ -45,142 +38,85 @@ define([
 					c: expectedResultHash.c
 				};
 
-			var testDeferred = this.async();
 			deferredHash.a.resolve(expectedResultHash.a);
-			all(deferredHash).then(function (resultHash) {
-				try {
-					assert.deepEqual(resultHash, expectedResultHash);
-					testDeferred.resolve();
-				}
-				catch (error) {
-					testDeferred.reject(error);
-				}
-			});
+			all(deferredHash).then(this.async().callback(function (resultHash) {
+				assert.deepEqual(resultHash, expectedResultHash);
+			}));
 			deferredHash.b.resolve(expectedResultHash.b);
 		},
 
-		'without arguments': function(t){
-			var testDeferred = this.async();
-			all().then(function (result) {
-				try {
-					assert.isUndefined(result);
-					testDeferred.resolve();
-				}
-				catch (error) {
-					testDeferred.reject(error);
-				}
-			});
+		'without arguments': function () {
+			all().then(this.async().callback(function (result) {
+				assert.isUndefined(result);
+			}));
 		},
 
-		'with single non-object argument': function(t){
-			var testDeferred = this.async();
-			all(null).then(function (result) {
-				try {
-					assert.isUndefined(result);
-					testDeferred.resolve();
-				}
-				catch (error) {
-					testDeferred.reject(error);
-				}
-			});
+		'with single non-object argument': function () {
+			all(null).then(this.async().callback(function (result) {
+				assert.isUndefined(result);
+			}));
 		},
 
-		'with empty array': function(t){
-			var testDeferred = this.async();
-			all([]).then(function (result) {
-				try {
-					assert.deepEqual(result, []);
-					testDeferred.resolve();
-				}
-				catch (error) {
-					testDeferred.reject(error);
-				}
-			});
+		'with empty array': function () {
+			all([]).then(this.async().callback(function (result) {
+				assert.deepEqual(result, []);
+			}));
 		},
 
-		'with empty object': function(t){
-			var testDeferred = this.async();
-			all({}).then(function (result) {
-				try {
-					assert.deepEqual(result, {});
-					testDeferred.resolve();
-				}
-				catch (error) {
-					testDeferred.reject(error);
-				}
-			});
+		'with empty object': function () {
+			all({}).then(this.async().callback(function (result) {
+				assert.deepEqual(result, {});
+			}));
 		},
 
-		'with one rejected promise': function(t){
-			var expectedRejectedResult = {},
-				argument = [ new Deferred(), new Deferred(), {} ];
+		'with one rejected promise': function () {
+			var expectedRejectedResult = {};
+			var argument = [ new Deferred(), new Deferred(), {} ];
 
-			var testDeferred = this.async();
-			argument[1].reject(expectedRejectResult);
-			all(argument).then(null, function(result) {
-				try {
-					assert.strictEqual(result, expectedRejectedResult);
-					testDeferred.resolve();
-				}
-				catch (error) {
-					testDeferred.reject(error);
-				}
-			});
+			argument[1].reject(expectedRejectedResult);
+			all(argument).then(null, this.async().callback(function (result) {
+				assert.strictEqual(result, expectedRejectedResult);
+			}));
 		},
 
-		'with one promise rejected later': function(t){
-			var expectedRejectedResult = {},
-				argument = [ new Deferred(), new Deferred(), {} ];
+		'with one promise rejected later': function () {
+			var expectedRejectedResult = {};
+			var argument = [ new Deferred(), new Deferred(), {} ];
 
-			var testDeferred = this.async();
-			all(argument).then(null, function(result) {
-				try {
-					assert.strictEqual(result, expectedRejectedResult);
-					testDeferred.resolve();
-				}
-				catch (error) {
-					testDeferred.reject(error);
-				}
-			});
-			argument[1].reject(expectedRejectResult);
+			all(argument).then(null, this.async().callback(function (result) {
+				assert.strictEqual(result, expectedRejectedResult);
+			}));
+			argument[1].reject(expectedRejectedResult);
 		},
 
-		'with multiple promises rejected later': function(t){
-			var expectedRejectedResult = {},
-				argument = [ new Deferred(), new Deferred(), {} ];
+		'with multiple promises rejected later': function () {
+			var expectedRejectedResult = {};
+			var actualResult;
+			var argument = [ new Deferred(), new Deferred(), {} ];
 
-			var testDeferred = this.async();
-			all(argument).then(null, function(result) {
-				try {
-					assert.strictEqual(result, expectedRejectedResult);
-					testDeferred.resolve();
-				}
-				catch (error) {
-					testDeferred.reject(error);
-				}
+			all(argument).then(null, function (result) {
+				actualResult = result;
 			});
-			// TODO: because of how testDeferred is resolved, this may not correctly verify a second reject didn't occur from the promise returned by all()
-			argument[0].reject(expectedRejectResult);
+
+			argument[0].reject(expectedRejectedResult);
 			argument[1].reject({});
+
+			// ensure reject is only called once
+			setTimeout(this.async().callback(function () {
+				assert.strictEqual(actualResult, expectedRejectedResult);
+			}), 0);
 		},
 
-		'all() cancel only affects returned promise, not those we\'re waiting for': function(t){
-			var expectedCancelResult = {},
-				deferredCanceled = false,
-				secondDeferred = new Deferred(function(){ deferredCanceled = true; });
+		'cancel only affects returned promise, not those we\'re waiting for': function () {
+			var expectedCancelResult = {};
+			var deferredCanceled = false;
+			var secondDeferred = new Deferred(function () { deferredCanceled = true; });
 
-			var testDeferred = this.async();
-			var promise = all([ new Deferred(), secondDeferred, new Deferred() ]).then(null, function(result){
-				try {
-					assert.strictEqual(result, expectedCancelResult);
-					assert.isFalse(deferredCanceled);
-					testDeferred.resolve();
-				}
-				catch (error) {
-					testDeferred.reject(error);
-				}
-			});
-			promise.cancel(expectedCancelResult);
+			all([ new Deferred(), secondDeferred, new Deferred() ]).then(null, this.async().callback(function (result) {
+				assert.strictEqual(result, expectedCancelResult);
+				assert.isFalse(deferredCanceled);
+			})).cancel(expectedCancelResult);
 		}
 	});
 });
+
