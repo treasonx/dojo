@@ -17,12 +17,21 @@ define([
 	registerSuite({
 		name: 'dojo/_base/declare',
 
+		/*
+		* There is a bug in lang.setObject() which prevents declare from extending a
+		* global which has been set to undefined. To work around this problem we
+		* are setting window.tests to an empty object before each test and once all
+		* the tests have completed we set it to undefined.
+		*/
+		beforeEach: function () {
+			window.tests = {};
+		},
+
 		after: function () {
 			window.tests = undefined;
 		},
 
 		afterEach: function () {
-			window.tests = {};
 			window.testsFoo = undefined;
 		},
 
@@ -48,7 +57,7 @@ define([
 			});
 
 			test = new window.testsFoo();
-			assert.equal('thonk', test.foo);
+			assert.equal(test.foo, 'thonk');
 		},
 
 		'smoke test with Ctor': function () {
@@ -61,7 +70,7 @@ define([
 				foo: 'thonk'
 			});
 			test = new window.tests._base.declare.fooBar();
-			assert.equal('blah', test.foo);
+			assert.equal(test.foo, 'blah');
 		},
 
 		'smoke test compact args': function () {
@@ -70,7 +79,7 @@ define([
 				foo: 'thonk'
 			});
 			test = new window.tests._base.declare.fooBar2();
-			assert.equal('thonk', test.foo);
+			assert.equal(test.foo, 'thonk');
 		},
 
 		'subclass': function () {
@@ -80,7 +89,7 @@ define([
 			});
 			declare('tests._base.declare.tmp4', window.tests._base.declare.tmp3);
 			test = new window.tests._base.declare.tmp4();
-			assert.equal('thonk', test.foo);
+			assert.equal(test.foo, 'thonk');
 		},
 
 		'subclass with Ctor': function () {
@@ -93,7 +102,7 @@ define([
 			});
 			declare('tests._base.declare.tmp6', window.tests._base.declare.tmp5);
 			test = new window.tests._base.declare.tmp6();
-			assert.equal('blah', test.foo);
+			assert.instanceOf(test, window.tests._base.declare.tmp5);
 		},
 
 		'mixin subclass': function () {
@@ -107,14 +116,15 @@ define([
 				}
 			});
 			test = new window.tests._base.declare.tmp8();
-			assert.equal('blah', test.foo);
+			assert.equal(test.foo, 'blah');
 			declare('tests._base.declare.tmp9',
 				[
 					window.tests._base.declare.tmp7, // prototypal
 					window.tests._base.declare.tmp8  // mixin
 				]);
 			test = new window.tests._base.declare.tmp9();
-			assert.equal('blah', test.foo);
+			assert.equal(test.foo, 'blah');
+			assert.instanceOf(test, window.tests._base.declare.tmp7);
 		},
 
 		'super class ref': function () {
@@ -128,8 +138,8 @@ define([
 				}
 			});
 			test = new window.tests._base.declare.tmp11();
-			assert.equal('blah', test.foo);
-			assert.equal('thonk', window.tests._base.declare.tmp11.superclass.foo);
+			assert.equal(test.foo, 'blah');
+			assert.equal(window.tests._base.declare.tmp11.superclass.foo, 'thonk');
 		},
 
 		'inherited call': function () {
@@ -152,14 +162,14 @@ define([
 				}
 			});
 			test = new window.tests._base.declare.tmp13();
-			assert.equal('blah', test.foo);
-			assert.equal('xyzzy', foo);
+			assert.equal(test.foo, 'blah');
+			assert.equal(foo, 'xyzzy');
 			test.bar('zot');
-			assert.equal('zot', test.foo);
-			assert.equal('xyzzy', foo);
+			assert.equal(test.foo, 'zot');
+			assert.equal(foo, 'xyzzy');
 			test.bar('trousers', 'squiggle');
-			assert.equal('trousers', test.foo);
-			assert.equal('squiggle', foo);
+			assert.equal(test.foo, 'trousers');
+			assert.equal(foo, 'squiggle');
 		},
 
 		'inherited explicit call': function () {
@@ -188,14 +198,14 @@ define([
 				}
 			});
 			test = new window.tests._base.declare.tmp15();
-			assert.equal('blah', test.foo);
-			assert.equal('xyzzy', foo);
+			assert.equal(test.foo, 'blah');
+			assert.equal(foo, 'xyzzy');
 			test.baz('zot');
-			assert.equal('zot', test.foo);
-			assert.equal('xyzzy', foo);
+			assert.equal(test.foo, 'zot');
+			assert.equal(foo, 'xyzzy');
 			test.bar('trousers', 'squiggle');
-			assert.equal('squiggle', test.foo);
-			assert.equal('trousers', foo);
+			assert.equal(test.foo, 'squiggle');
+			assert.equal(foo, 'trousers');
 		},
 
 		'inherited with mixin calls': function () {
@@ -229,7 +239,7 @@ define([
 			});
 			test = new window.tests._base.declare.tmp17();
 			test.bar();
-			assert.equal('tmp16.mixin16.mixin17.tmp17', test.foo);
+			assert.equal(test.foo, 'tmp16.mixin16.mixin17.tmp17');
 		},
 
 		'mixin preamble': function () {
@@ -283,17 +293,17 @@ define([
 			});
 			var x = new window.tests._base.declare.tmp19();
 			// smoke tests
-			assert.equal(0, x.flag);
+			assert.equal(x.flag, 0);
 			x.foo();
-			assert.equal(2, x.flag);
+			assert.equal(x.flag, 2);
 			x.clear();
-			assert.equal(0, x.flag);
+			assert.equal(x.flag, 0);
 			var a = 0;
 			// aspect.after() on a prototype method
 			aspect.after(window.tests._base.declare.tmp19.prototype, 'foo', function () { a = 1; });
 			x.foo();
-			assert.equal(2, x.flag);
-			assert.equal(1, a);
+			assert.equal(x.flag, 2);
+			assert.equal(a, 1);
 			x.clear();
 			a = 0;
 			// extra chaining
@@ -304,8 +314,8 @@ define([
 				old.call(this);
 			};
 			x.bar();
-			assert.equal(3, x.flag);
-			assert.equal(1, a);
+			assert.equal(x.flag, 3);
+			assert.equal(a, 1);
 			x.clear();
 			a = 0;
 			// replacement
@@ -315,8 +325,8 @@ define([
 				this.inherited('baz', arguments);
 			};
 			x.baz();
-			assert.equal(2, x.flag);
-			assert.equal(1, a);
+			assert.equal(x.flag, 2);
+			assert.equal(a, 1);
 		},
 
 		'modified instance': function () {
@@ -355,22 +365,22 @@ define([
 			};
 			stack = [];
 			a.foo();
-			assert.deepEqual([20, 22], stack);
+			assert.deepEqual(stack, [20, 22]);
 
 			stack = [];
 			b.foo();
-			assert.deepEqual([20, 21, 22], stack);
+			assert.deepEqual(stack, [20, 21, 22]);
 
 			lang.mixin(a, c);
 			lang.mixin(b, c);
 
 			stack = [];
 			a.foo();
-			assert.deepEqual([20, 22, 'INSIDE C'], stack);
+			assert.deepEqual(stack, [20, 22, 'INSIDE C']);
 
 			stack = [];
 			b.foo();
-			assert.deepEqual([20, 21, 22, 'INSIDE C'], stack);
+			assert.deepEqual(stack, [20, 21, 22, 'INSIDE C']);
 		},
 
 		'duplicated base': function () {
@@ -388,10 +398,10 @@ define([
 			});
 			stack = [];
 			tmp = new A();
-			assert.deepEqual([1], stack);
+			assert.deepEqual(stack, [1]);
 			stack = [];
 			tmp = new B();
-			assert.deepEqual([1, 2], stack);
+			assert.deepEqual(stack, [1, 2]);
 		},
 
 		'indirectly duplicated base': function () {
@@ -419,10 +429,10 @@ define([
 			});
 			stack = [];
 			tmp = new C();
-			assert.deepEqual([1, 2, 3], stack);
+			assert.deepEqual(stack, [1, 2, 3]);
 			stack = [];
 			tmp = new D();
-			assert.deepEqual([1, 2, 4], stack);
+			assert.deepEqual(stack, [1, 2, 4]);
 		},
 
 		'wrong multiple inheritance': function () {
@@ -440,10 +450,10 @@ define([
 			});
 			stack = [];
 			tmp = new A();
-			assert.deepEqual([1], stack);
+			assert.deepEqual(stack, [1]);
 			stack = [];
 			tmp = new B();
-			assert.deepEqual([1, 2], stack);
+			assert.deepEqual(stack, [1, 2]);
 		},
 
 		'impossible bases': function () {
@@ -542,12 +552,12 @@ define([
 			var D2 = A.createSubclass([B, C]);
 			var d1 = new D1();
 			var d2 = new D2();
-			assert.equal('blah', d1.foo);
-			assert.equal('thonk', d2.foo);
-			assert.equal('thonk', d1.bar);
-			assert.equal('thonk', d2.bar);
+			assert.equal(d1.foo, 'blah');
+			assert.equal(d2.foo, 'thonk');
+			assert.equal(d1.bar, 'thonk');
+			assert.equal(d2.bar, 'thonk');
 		}
-		// FIXME: there are still some permutations to test like:
+		// TODO: there are still some permutations to test like:
 		//	- ctor arguments
 		//	- multi-level inheritance + L/R conflict checks
 	});
