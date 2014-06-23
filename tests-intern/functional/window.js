@@ -18,7 +18,8 @@ define([
 			before: function () {
 				return this.get('remote')
 					.get(require.toUrl('./window/viewport.html'))
-					.waitForCondition('ready', 5000);
+					.setAsyncScriptTimeout(5000)
+					.waitForConditionInBrowser('ready');
 			},
 
 			initial: function () {
