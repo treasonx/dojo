@@ -50,7 +50,7 @@ define([
 			});
 
 			test = new window.tests._base.declare.foo();
-			assert.equal('thonk', test.foo);
+			assert.equal(test.foo, 'thonk');
 
 			declare('testsFoo', null, {
 				foo: 'thonk'
